@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var correctAnswer = Int.random(in: 0 ... 2)
     @State private var showingScore = false
     @State private var scoreTitle = ""
+    @State private var scoreSubtitle = ""
     @State private var currentScore = 0
     @State private var correctCount = 0
     @State private var wrongCount = 0
@@ -24,12 +25,11 @@ struct ContentView: View {
             VStack(spacing: 30) {
                 VStack {
                     Text("Tap the flag of")
-                        .foregroundColor(.white)
                     Text(countries[correctAnswer])
-                        .foregroundColor(.white)
                         .font(.largeTitle)
                         .fontWeight(.black)
                 }
+                .foregroundColor(.white)
 
                 Spacer()
 
@@ -47,33 +47,40 @@ struct ContentView: View {
 
                 Spacer()
 
-                Text("Correct: \(correctCount) Wrong: \(wrongCount)")
-                    .foregroundColor(.white)
-                    .font(.title3)
+                VStack {
+                    Text("Your score: \(currentScore)")
+                        .font(.title3)
+                        .padding(5)
+                    Text("Correct: \(correctCount) Wrong: \(wrongCount)")
+                        .font(.subheadline)
+                }
+                .foregroundColor(.white)
             }
         }
         .alert(isPresented: $showingScore) {
             Alert(title: Text(scoreTitle),
-                  message: Text("Your score is \(currentScore)").font(.headline),
+                  message: Text(scoreSubtitle),
                   dismissButton: .default(Text("Continue")) {
                 self.askQuestion()
             })
         }
     }
 
-    func flagTapped(_ number: Int) {
+    private func flagTapped(_ number: Int) {
         if number == correctAnswer {
             scoreTitle = "Correct"
+            scoreSubtitle = "Well done"
             correctCount += 1
         } else {
-            scoreTitle = "That flag belongs to \(countries[number])"
+            scoreTitle = "Wrong"
+            scoreSubtitle = "That flag belongs to \(countries[number])"
             wrongCount += 1
         }
         currentScore = correctCount - wrongCount
         showingScore = true
     }
 
-    func askQuestion() {
+    private func askQuestion() {
         countries.shuffle()
         correctAnswer = Int.random(in: 0 ... 2)
     }
