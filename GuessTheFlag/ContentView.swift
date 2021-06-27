@@ -17,44 +17,56 @@ struct ContentView: View {
     @State private var correctCount = 0
     @State private var wrongCount = 0
 
+    var gameBackground: some View {
+        LinearGradient(gradient: Gradient(colors: [Color.blue, Color.black]), startPoint: .top, endPoint: .bottom)
+            .edgesIgnoringSafeArea(.all)
+    }
+
+    var gameHeader: some View {
+        VStack {
+            Text("Tap the flag of")
+            Text(countries[correctAnswer])
+                .font(.largeTitle)
+                .fontWeight(.black)
+        }
+        .foregroundColor(.white)
+    }
+
+    var gameBody: some View {
+        ForEach(0 ..< 3) { number in
+            Button(action: {
+                flagTapped(number)
+            }) {
+                FlagImage(country: countries[number])
+            }
+        }
+    }
+
+    var gameFooter: some View {
+        VStack {
+            Text("Your score: \(currentScore)")
+                .font(.title3)
+                .padding(5)
+            Text("Correct: \(correctCount) Wrong: \(wrongCount)")
+                .font(.subheadline)
+        }
+        .foregroundColor(.white)
+    }
+
     var body: some View {
         ZStack {
-            LinearGradient(gradient: Gradient(colors: [Color.blue, Color.black]), startPoint: .top, endPoint: .bottom)
-                .edgesIgnoringSafeArea(.all)
+            gameBackground
 
             VStack(spacing: 30) {
-                VStack {
-                    Text("Tap the flag of")
-                    Text(countries[correctAnswer])
-                        .font(.largeTitle)
-                        .fontWeight(.black)
-                }
-                .foregroundColor(.white)
+                gameHeader
 
                 Spacer()
 
-                ForEach(0 ..< 3) { number in
-                    Button(action: {
-                        flagTapped(number)
-                    }) {
-                        Image(countries[number])
-                            .renderingMode(.original)
-                            .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 25, style: .continuous).stroke(Color.white, lineWidth: 1))
-                            .shadow(color: .black, radius: 3)
-                    }
-                }
+                gameBody
 
                 Spacer()
 
-                VStack {
-                    Text("Your score: \(currentScore)")
-                        .font(.title3)
-                        .padding(5)
-                    Text("Correct: \(correctCount) Wrong: \(wrongCount)")
-                        .font(.subheadline)
-                }
-                .foregroundColor(.white)
+                gameFooter
             }
         }
         .alert(isPresented: $showingScore) {
@@ -83,6 +95,18 @@ struct ContentView: View {
     private func askQuestion() {
         countries.shuffle()
         correctAnswer = Int.random(in: 0 ... 2)
+    }
+}
+
+struct FlagImage: View {
+    var country: String
+
+    var body: some View {
+        Image(country)
+            .renderingMode(.original)
+            .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 25, style: .continuous).stroke(Color.white, lineWidth: 1))
+            .shadow(color: .black, radius: 3)
     }
 }
 
