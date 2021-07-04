@@ -8,18 +8,22 @@
 import SwiftUI
 
 struct ContentView: View {
+    // game control
     @State private var countries = ["Estonia", "France", "Germany", "Ireland", "Italy", "Nigeria", "Poland", "Russia", "Spain", "UK", "US"].shuffled()
-    @State private var correctAnswer = Int.random(in: 0 ... 2)
-    @State private var showingScore = false
-    @State private var scoreTitle = ""
-    @State private var scoreSubtitle = ""
+    @State private var correctChoice = Int.random(in: 0 ... 2)
+    // animation control
+    @State private var usersChoice = -1
+    @State private var correctGuess = false
+    @State private var incorrectGuess = false
+    @State private var animationRunning = false
+    @State private var scaleAmount: CGFloat = 1.0
+    @State private var opacityAmount = 1.0
+    @State private var spinDegrees = 0.0
+    @State private var spinAxis: (CGFloat, CGFloat, CGFloat) = (0, 0, 0)
+    // score tracking
     @State private var currentScore = 0
     @State private var correctCount = 0
     @State private var wrongCount = 0
-    @State private var incorrectGuess = false
-    @State private var correctGuess = false
-    @State private var animationRunning = false
-    @State private var spinAmount = 0.0
 
     var body: some View {
         ZStack {
@@ -37,9 +41,6 @@ struct ContentView: View {
                 gameFooter
             }
         }
-        .alert(isPresented: $incorrectGuess) {
-            showAlert
-        }
     }
 
     var gameBackground: some View {
@@ -50,7 +51,7 @@ struct ContentView: View {
     var gameHeader: some View {
         VStack {
             Text("Tap the flag of")
-            Text(countries[correctAnswer])
+            Text(countries[correctChoice])
                 .font(.largeTitle)
                 .fontWeight(.black)
         }
@@ -62,20 +63,25 @@ struct ContentView: View {
             Button(action: {
                 if !animationRunning {
                     animationRunning = true
-                    withAnimation(Animation.easeOut(duration: 1.5)) {
-                        flagTapped(number)
-                        spinAmount = 360
-                        if correctGuess {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                setupForNewRound()
-                            }
-                        }
+                    flagTapped(number)
+                    withAnimation(.linear(duration: 1)) {
+                        scaleAmount = computedScaleEffect
+                        opacityAmount = computedOpacity
+                        spinDegrees = computedSpinDegrees
+                        spinAxis = computedSpinAxis
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        setupForNewRound()
                     }
                 }
             }) {
                 FlagImage(country: countries[number])
-                    .opacity(correctGuess && number != correctAnswer ? 0.25 : 1.0)
-                    .rotation3DEffect(.degrees(correctGuess && number == correctAnswer ? spinAmount : 0.0), axis: (x: 0, y: 1, z: 0))
+                    .scaleEffect(animateSelection(for: number) ? scaleAmount : 1.0)
+                    .opacity(animateUnselected(for: number) ? opacityAmount : 1.0)
+                    .rotation3DEffect(
+                        .degrees(animateSelection(for: number) ? spinDegrees : 0),
+                        axis: animateSelection(for: number) ? spinAxis : (0, 0, 0)
+                    )
             }
             .disabled(animationRunning)
         }
@@ -83,46 +89,91 @@ struct ContentView: View {
 
     var gameFooter: some View {
         VStack {
-            Text("Your score: \(currentScore)")
-                .font(.title)
-                .padding(5)
-            Text("😀: \(correctCount)   😞: \(wrongCount)")
-                .font(.title2)
+            if correctGuess {
+                Text("Well done!")
+                    .padding(5)
+                Text("You got it right")
+            } else if incorrectGuess {
+                Text("Oops!")
+                    .padding(5)
+                Text("You chose \(countries[usersChoice])")
+
+            } else {
+                Text("Your score: \(currentScore)")
+                    .padding(5)
+                Text("😀: \(correctCount)   😞: \(wrongCount)")
+            }
         }
+        .font(.title)
         .foregroundColor(.white)
     }
 
-    var showAlert: Alert {
-        Alert(title: Text(scoreTitle),
-              message: Text(scoreSubtitle),
-              dismissButton: .default(Text("Continue")) {
-            setupForNewRound()
-        })
+    var computedOpacity: Double {
+        if correctGuess {
+            return 0.25
+        }
+        return 1.0
+    }
+
+    var computedScaleEffect: CGFloat {
+        if correctGuess {
+            return 1.25
+        } else if incorrectGuess {
+            return 0.0
+        } else {
+            return 1.0
+        }
+    }
+
+    var computedSpinDegrees: Double {
+        if correctGuess {
+            return 360
+        } else if incorrectGuess {
+            return -360
+        }
+        return 0
+    }
+
+    var computedSpinAxis: (CGFloat, CGFloat, CGFloat) {
+        if correctGuess {
+            return (0, 1, 0)
+        } else if incorrectGuess {
+            return (0, 0, 1)
+        }
+        return (0, 0, 0)
+    }
+
+    private func animateSelection(for choice: Int) -> Bool {
+        return (correctGuess && choice == correctChoice) || (incorrectGuess && choice == usersChoice)
+    }
+
+    private func animateUnselected(for choice: Int) -> Bool {
+        return (correctGuess && choice != correctChoice)
     }
 
     private func flagTapped(_ number: Int) {
-        if number == correctAnswer {
-            scoreTitle = "Correct"
-            scoreSubtitle = "Well done"
+        usersChoice = number
+        if number == correctChoice {
             correctCount += 1
             correctGuess = true
         } else {
-            scoreTitle = "Wrong"
-            scoreSubtitle = "That flag belongs to \(countries[number])"
             wrongCount += 1
             correctGuess = false
         }
         incorrectGuess = !correctGuess
         currentScore = correctCount - wrongCount
-        showingScore = true
     }
 
     private func setupForNewRound() {
         countries.shuffle()
-        correctAnswer = Int.random(in: 0 ... 2)
+        correctChoice = Int.random(in: 0 ... 2)
         correctGuess = false
         incorrectGuess = false
-        spinAmount = 0
+        usersChoice = -1
+        scaleAmount = 1.0
+        opacityAmount = 1.0
+        spinDegrees = 0.0
+        spinAxis = (0, 0, 0)
         animationRunning = false
     }
 }
@@ -131,13 +182,11 @@ struct FlagImage: View {
     var country: String
 
     var body: some View {
-        ZStack {
         Image(country)
             .renderingMode(.original)
             .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 25, style: .continuous).stroke(Color.white, lineWidth: 1))
             .shadow(color: .black, radius: 3)
-        }
     }
 }
 
