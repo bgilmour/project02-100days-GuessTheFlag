@@ -16,6 +16,31 @@ struct ContentView: View {
     @State private var currentScore = 0
     @State private var correctCount = 0
     @State private var wrongCount = 0
+    @State private var incorrectGuess = false
+    @State private var correctGuess = false
+    @State private var animationRunning = false
+    @State private var spinAmount = 0.0
+
+    var body: some View {
+        ZStack {
+            gameBackground
+
+            VStack(spacing: 30) {
+                gameHeader
+
+                Spacer()
+
+                gameBody
+
+                Spacer()
+
+                gameFooter
+            }
+        }
+        .alert(isPresented: $incorrectGuess) {
+            showAlert
+        }
+    }
 
     var gameBackground: some View {
         LinearGradient(gradient: Gradient(colors: [Color.blue, Color.black]), startPoint: .top, endPoint: .bottom)
@@ -35,47 +60,43 @@ struct ContentView: View {
     var gameBody: some View {
         ForEach(0 ..< 3) { number in
             Button(action: {
-                flagTapped(number)
+                if !animationRunning {
+                    animationRunning = true
+                    withAnimation(Animation.easeOut(duration: 1.5)) {
+                        flagTapped(number)
+                        spinAmount = 360
+                        if correctGuess {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                setupForNewRound()
+                            }
+                        }
+                    }
+                }
             }) {
                 FlagImage(country: countries[number])
+                    .rotation3DEffect(.degrees(correctGuess && number == correctAnswer ? spinAmount : 0.0), axis: (x: 0, y: 1, z: 0))
             }
+            .disabled(animationRunning)
         }
     }
 
     var gameFooter: some View {
         VStack {
             Text("Your score: \(currentScore)")
-                .font(.title3)
+                .font(.title)
                 .padding(5)
-            Text("Correct: \(correctCount) Wrong: \(wrongCount)")
-                .font(.subheadline)
+            Text("😀: \(correctCount)   😞: \(wrongCount)")
+                .font(.title2)
         }
         .foregroundColor(.white)
     }
 
-    var body: some View {
-        ZStack {
-            gameBackground
-
-            VStack(spacing: 30) {
-                gameHeader
-
-                Spacer()
-
-                gameBody
-
-                Spacer()
-
-                gameFooter
-            }
-        }
-        .alert(isPresented: $showingScore) {
-            Alert(title: Text(scoreTitle),
-                  message: Text(scoreSubtitle),
-                  dismissButton: .default(Text("Continue")) {
-                self.askQuestion()
-            })
-        }
+    var showAlert: Alert {
+        Alert(title: Text(scoreTitle),
+              message: Text(scoreSubtitle),
+              dismissButton: .default(Text("Continue")) {
+            setupForNewRound()
+        })
     }
 
     private func flagTapped(_ number: Int) {
@@ -83,18 +104,25 @@ struct ContentView: View {
             scoreTitle = "Correct"
             scoreSubtitle = "Well done"
             correctCount += 1
+            correctGuess = true
         } else {
             scoreTitle = "Wrong"
             scoreSubtitle = "That flag belongs to \(countries[number])"
             wrongCount += 1
+            correctGuess = false
         }
+        incorrectGuess = !correctGuess
         currentScore = correctCount - wrongCount
         showingScore = true
     }
 
-    private func askQuestion() {
+    private func setupForNewRound() {
         countries.shuffle()
         correctAnswer = Int.random(in: 0 ... 2)
+        correctGuess = false
+        incorrectGuess = false
+        spinAmount = 0
+        animationRunning = false
     }
 }
 
