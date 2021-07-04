@@ -74,6 +74,7 @@ struct ContentView: View {
                 }
             }) {
                 FlagImage(country: countries[number])
+                    .opacity(correctGuess && number != correctAnswer ? 0.25 : 1.0)
                     .rotation3DEffect(.degrees(correctGuess && number == correctAnswer ? spinAmount : 0.0), axis: (x: 0, y: 1, z: 0))
             }
             .disabled(animationRunning)
@@ -130,11 +131,13 @@ struct FlagImage: View {
     var country: String
 
     var body: some View {
+        ZStack {
         Image(country)
             .renderingMode(.original)
             .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 25, style: .continuous).stroke(Color.white, lineWidth: 1))
             .shadow(color: .black, radius: 3)
+        }
     }
 }
 
